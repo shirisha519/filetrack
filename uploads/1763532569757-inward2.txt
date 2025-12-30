@@ -1,0 +1,113 @@
+inward.controller.js
+
+
+
+
+
+
+
+
+
+import pool from "../config/db.js";
+import { getNextInwardNo } from "../utils/getNextInwardNo.js";
+
+// ✅ 1. Get Next Inward Number (Used to show on form)
+export const getNextInwardNumber = async (req, res) => {
+  try {
+    const inwardNo = await getNextInwardNo();
+    res.json({ inwardNo });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// ✅ 2. Create New Inward Entry
+export const createInward = async (req, res) => {
+  const { fileNo, receivedFrom, seatNo, year } = req.body;
+
+  try {
+    const inwardNo = await getNextInwardNo(); // Auto Generate Number
+
+    await pool.query(
+      `INSERT INTO inward (file_no, inward_no, received_from, seat_no, year)
+       VALUES ($1, $2, $3, $4, $5)`,
+      [fileNo, inwardNo, receivedFrom, seatNo, year]
+    );
+
+    res.json({ message: "Inward created successfully", inwardNo });
+
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// ✅ 3. Search Inward Records
+export const searchInward = async (req, res) => {
+  const { searchText } = req.body;
+
+  try {
+    const result = await pool.query(
+      `SELECT * FROM inward
+       WHERE file_no ILIKE $1
+       OR inward_no ILIKE $1`,
+      [`%${searchText}%`]
+    );
+
+    res.json(result.rows);
+
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+  
+
+frontend
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  const formDataToSend = new FormData();
+
+  formDataToSend.append("inwardNo", inwardNo); // send inward number
+
+  Object.entries(formData).forEach(([key, value]) => {
+    formDataToSend.append(key, value);
+  });
+
+  try {
+    const response = await axios.post("http://localhost:5000/api/inward", formDataToSend);
+
+    alert(`Inward No ${response.data.inwardNo} created Successfully ✅`);
+
+    const newNo = await axios.get("http://localhost:5000/api/inward/next-inward-no");
+    setInwardNo(newNo.data.inwardNo);
+
+    handleClear();
+
+  } catch (error) {
+    console.error(error);
+    alert("Submission failed. Check console.");
+  }
+};
+
+
+first code
+
+const handleSubmit = async (e) => {
+    e.preventDefault();
+    const formDataToSend = new FormData();
+    Object.entries(formData).forEach(([key, value]) => {
+      formDataToSend.append(key, value);
+    });
+
+    try {
+      const response = await axios.post("http://localhost:5000/api/inward", formDataToSend, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+
+      console.log("Response:", response.data);
+      alert("Inward Form Submitted Successfully!");
+      handleClear();
+    } catch (error) {
+      console.error("Error submitting form:", error);
+      alert("Failed to submit form. See console for details.");
+    }
+  };

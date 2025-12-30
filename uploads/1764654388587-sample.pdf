@@ -1,0 +1,849 @@
+InwardSearch.js
+import React, { useState, useEffect } from "react";
+import axios from "axios";
+import "./InwardSearch.css";
+
+const InwardSearch = () => {
+  const [inwardNo, setInwardNo] = useState("");
+  const [formData, setFormData] = useState({
+    fromDate: new Date().toISOString().split("T")[0],
+    toDate: new Date().toISOString().split("T")[0],
+    cpCamp: "",
+    cyberOffice: "",
+    seatNo: "",
+    fileNo: "",
+    year: "",
+    receivedFrom: "",
+    receivedFromDate: new Date().toISOString().split("T")[0],
+    receivedToDate: new Date().toISOString().split("T")[0],
+  });
+
+  const [searchResults, setSearchResults] = useState("");
+
+  useEffect(() => {
+    const fetchInwardNo = async () => {
+      try {
+        const response = await axios.get("http://localhost:5000/api/inward/next-inward-no");
+        setInwardNo(response.data.inwardNo);
+      } catch (error) {
+        console.error("Error fetching inward no:", error);
+      }
+    };
+    fetchInwardNo();
+  }, []);
+
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleSearch = async () => {
+    try {
+      const response = await axios.post("http://localhost:5000/api/inward/search", {
+        fromDate: formData.fromDate,
+        toDate: formData.toDate,
+      });
+      setSearchResults(JSON.stringify(response.data, null, 2));
+    } catch (error) {
+      console.error("Search error:", error);
+      setSearchResults("No results or error occurred.");
+    }
+  };
+
+  const handleReceivedDateSearch = async () => {
+    try {
+      const response = await axios.post("http://localhost:5000/api/inward/search", {
+        fromDate: formData.receivedFromDate,
+        toDate: formData.receivedToDate,
+      });
+      setSearchResults(JSON.stringify(response.data, null, 2));
+    } catch (error) {
+      console.error("Received Date Range Search error:", error);
+      setSearchResults("No results or error occurred.");
+    }
+  };
+
+  const handleViewFile = () => {
+    try {
+      const data = JSON.parse(searchResults);
+      const file = data?.[0]?.fileUpload;
+      if (file) {
+        window.open(`http://localhost:5000/${file}`, "_blank");
+      } else {
+        alert("No file available to view.");
+      }
+    } catch {
+      alert("Please search first, no data available.");
+    }
+  };
+
+  const handleDownloadFile = () => {
+    try {
+      const data = JSON.parse(searchResults);
+      const file = data?.[0]?.fileUpload;
+      if (file) {
+        const link = document.createElement("a");
+        link.href = `http://localhost:5000/${file}`;
+        link.download = "";
+        link.click();
+      } else {
+        alert("No file available to download.");
+      }
+    } catch {
+      alert("Please search first, no data available.");
+    }
+  };
+
+  return (
+    <div className="inward-search-page">
+      <div className="inward-search-container">
+        <h2 className="form">INWARD SEARCH</h2>
+        <h2 className="sub">New Receipts Admin and Account Branch</h2>
+
+        {/* Top row: Inward No + Date */}
+        <div className="top-row">
+          <div className="top-left">
+            <label>Inward No:</label>
+            <input type="text" value={inwardNo} readOnly className="input-field" />
+          </div>
+          <div className="top-right">
+            <label>Date:</label>
+            <input type="date" name="fromDate" value={formData.fromDate} onChange={handleChange} className="date-field" />
+          </div>
+        </div>
+
+        {/* Main Inputs */}
+        <div className="form-section">
+          <label>CP Camp:</label>
+          <input type="text" name="cpCamp" value={formData.cpCamp} onChange={handleChange} className="input-field" />
+
+          <label>Cyber Office:</label>
+          <input type="text" name="cyberOffice" value={formData.cyberOffice} onChange={handleChange} className="input-field" />
+
+          <label>Seat No:</label>
+          <input type="text" name="seatNo" value={formData.seatNo} onChange={handleChange} className="input-field" />
+
+          <label>File No:</label>
+          <input type="text" name="fileNo" value={formData.fileNo} onChange={handleChange} className="input-field" />
+
+          <label>Year:</label>
+          <input type="number" name="year" value={formData.year} onChange={handleChange} className="input-field" />
+
+          <label>Received From:</label>
+          <input type="text" name="receivedFrom" value={formData.receivedFrom} onChange={handleChange} className="input-field" />
+        </div>
+
+        {/* Search / View / Download Buttons */}
+        <div className="button-section">
+          <button onClick={handleSearch} className="search-button">Search</button>
+          <button onClick={handleViewFile} className="search-button">View</button>
+          <button onClick={handleDownloadFile} className="search-button">Download</button>
+        </div>
+
+        {/* Received Date Range Search */}
+        <div className="received-date-range">
+          <label>Received Date Range:</label>
+          <div className="received-date-row">
+            <input type="date" name="receivedFromDate" value={formData.receivedFromDate} onChange={handleChange} className="date-field" />
+            <span className="range-gap">to</span>
+            <input type="date" name="receivedToDate" value={formData.receivedToDate} onChange={handleChange} className="date-field" />
+            <button onClick={handleReceivedDateSearch} className="search-button range-search-button">Search</button>
+          </div>
+        </div>
+
+        {/* Results */}
+        <div className="results-section">
+          <label>Results:</label>
+          <textarea rows={10} className="results-textarea" value={searchResults} readOnly></textarea>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default InwardSearch;
+
+IwardSearch.js
+import React, { useState, useEffect } from "react";
+import axios from "axios";
+import "./InwardSearch.css";
+
+const InwardSearch = () => {
+  const [inwardNo, setInwardNo] = useState("");
+  const [formData, setFormData] = useState({
+    fromDate: new Date().toISOString().split("T")[0],
+    toDate: new Date().toISOString().split("T")[0],
+    cpCamp: "",
+    cyberOffice: "",
+    seatNo: "",
+    fileNo: "",
+    year: "",
+    receivedFrom: "",
+    receivedFromDate: new Date().toISOString().split("T")[0],
+    receivedToDate: new Date().toISOString().split("T")[0],
+  });
+
+  const [searchResults, setSearchResults] = useState("");
+
+  useEffect(() => {
+    const fetchInwardNo = async () => {
+      try {
+        const response = await axios.get("http://localhost:5000/api/inward/next-inward-no");
+        setInwardNo(response.data.inwardNo);
+      } catch (error) {
+        console.error("Error fetching inward no:", error);
+      }
+    };
+    fetchInwardNo();
+  }, []);
+
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleSearch = async () => {
+    try {
+      const response = await axios.post("http://localhost:5000/api/inward/search", {
+        fromDate: formData.fromDate,
+        toDate: formData.toDate,
+      });
+      setSearchResults(JSON.stringify(response.data, null, 2));
+    } catch (error) {
+      console.error("Search error:", error);
+      setSearchResults("No results or error occurred.");
+    }
+  };
+
+  const handleReceivedDateSearch = async () => {
+    try {
+      const response = await axios.post("http://localhost:5000/api/inward/search", {
+        fromDate: formData.receivedFromDate,
+        toDate: formData.receivedToDate,
+      });
+      setSearchResults(JSON.stringify(response.data, null, 2));
+    } catch (error) {
+      console.error("Received Date Range Search error:", error);
+      setSearchResults("No results or error occurred.");
+    }
+  };
+
+  const handleViewFile = () => {
+    try {
+      const data = JSON.parse(searchResults);
+      const file = data?.[0]?.fileUpload;
+      if (file) {
+        window.open(`http://localhost:5000/${file}`, "_blank");
+      } else {
+        alert("No file available to view.");
+      }
+    } catch {
+      alert("Please search first, no data available.");
+    }
+  };
+
+  const handleDownloadFile = () => {
+    try {
+      const data = JSON.parse(searchResults);
+      const file = data?.[0]?.fileUpload;
+      if (file) {
+        const link = document.createElement("a");
+        link.href = `http://localhost:5000/${file}`;
+        link.download = "";
+        link.click();
+      } else {
+        alert("No file available to download.");
+      }
+    } catch {
+      alert("Please search first, no data available.");
+    }
+  };
+
+  return (
+    <div className="inward-search-page">
+      <div className="inward-search-container">
+        <h2 className="form">INWARD SEARCH</h2>
+        <h2 className="sub">New Receipts Admin and Account Branch</h2>
+
+        {/* Top row: Inward No + Date */}
+        <div className="top-row">
+          <div className="top-left">
+            <label>Inward No:</label>
+            <input type="text" value={inwardNo} readOnly className="input-field" />
+          </div>
+          <div className="top-right">
+            <label>Date:</label>
+            <input type="date" name="fromDate" value={formData.fromDate} onChange={handleChange} className="date-field" />
+          </div>
+        </div>
+
+        {/* Main Inputs */}
+        <div className="form-section">
+          <label>CP Camp:</label>
+          <input type="text" name="cpCamp" value={formData.cpCamp} onChange={handleChange} className="input-field" />
+
+          <label>Cyber Office:</label>
+          <input type="text" name="cyberOffice" value={formData.cyberOffice} onChange={handleChange} className="input-field" />
+
+          <label>Seat No:</label>
+          <input type="text" name="seatNo" value={formData.seatNo} onChange={handleChange} className="input-field" />
+
+          <label>File No:</label>
+          <input type="text" name="fileNo" value={formData.fileNo} onChange={handleChange} className="input-field" />
+
+          <label>Year:</label>
+          <input type="number" name="year" value={formData.year} onChange={handleChange} className="input-field" />
+
+          <label>Received From:</label>
+          <input type="text" name="receivedFrom" value={formData.receivedFrom} onChange={handleChange} className="input-field" />
+        </div>
+
+        {/* Search / View / Download Buttons */}
+        <div className="button-section">
+          <button onClick={handleSearch} className="search-button">Search</button>
+          <button onClick={handleViewFile} className="search-button">View</button>
+          <button onClick={handleDownloadFile} className="search-button">Download</button>
+        </div>
+
+        {/* Received Date Range Search */}
+        <div className="received-date-range">
+          <label>Received Date Range:</label>
+          <div className="received-date-row">
+            <input type="date" name="receivedFromDate" value={formData.receivedFromDate} onChange={handleChange} className="date-field" />
+            <span className="range-gap">to</span>
+            <input type="date" name="receivedToDate" value={formData.receivedToDate} onChange={handleChange} className="date-field" />
+            <button onClick={handleReceivedDateSearch} className="search-button range-search-button">Search</button>
+          </div>
+        </div>
+
+        {/* Results */}
+        <div className="results-section">
+          <label>Results:</label>
+          <textarea rows={10} className="results-textarea" value={searchResults} readOnly></textarea>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default InwardSearch;
+
+
+database
+
+CREATE TABLE inward_admin (
+  id SERIAL PRIMARY KEY,
+  inward_no VARCHAR(20) NOT NULL UNIQUE,
+  office VARCHAR(50),
+  section VARCHAR(50),
+  seat_no VARCHAR(20),
+  file_no VARCHAR(20),
+  year INT,
+  received_from VARCHAR(100),
+  to_person VARCHAR(100),
+  subject TEXT,
+  category VARCHAR(50),
+  remarks TEXT,
+  date DATE,
+  file_path VARCHAR(200)
+);
+InwardSearch.js
+import React, { useState} from "react";
+import axios from "axios";
+import "./InwardSearch.css";
+
+const InwardSearch = () => {
+  const [inwardNo, setInwardNo] = useState("");
+  const [formData, setFormData] = useState({
+    office: "",
+    section: "",
+    seatNo: "",
+    fileNo: "",
+    year: "",
+    receivedFrom: "",
+    fromDate: new Date().toISOString().split("T")[0],
+    toDate: new Date().toISOString().split("T")[0],
+    receivedFromDate: new Date().toISOString().split("T")[0],
+    receivedToDate: new Date().toISOString().split("T")[0],
+  });
+
+  const [searchResults, setSearchResults] = useState("");
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    if (name === "office") {
+      setFormData({ ...formData, office: value, section: "" });
+      return;
+    }
+    setFormData({ ...formData, [name]: value });
+  };
+
+  const handleSearch = async () => {
+    try {
+     const response = await axios.post("http://localhost:5000/api/inward/search", {
+      ...formData,
+       inwardNo
+     });
+      setSearchResults(JSON.stringify(response.data, null, 2));
+    } catch (error) {
+      setSearchResults("No results or error occurred.");
+    }
+  };
+
+  const handleReceivedDateSearch = async () => {
+    try {
+      const response = await axios.post("http://localhost:5000/api/inward/search", {
+        fromDate: formData.receivedFromDate,
+        toDate: formData.receivedToDate,
+      });
+      setSearchResults(JSON.stringify(response.data, null, 2));
+    } catch {
+      setSearchResults("No results or error occurred.");
+    }
+  };
+
+  const handleViewFile = () => {
+    try {
+      const data = JSON.parse(searchResults);
+      const file = data?.[0]?.fileupload;
+      if (file) window.open(`http://localhost:5000/${file}`, "_blank");
+      else alert("No file to view.");
+    } catch {
+      alert("Search first.");
+    }
+  };
+
+  const handleDownloadFile = () => {
+    try {
+      const data = JSON.parse(searchResults);
+      const file = data?.[0]?.file_path;
+      if (file) {
+        const link = document.createElement("a");
+        link.href = `http://localhost:5000/${file}`;
+        link.download = "";
+        link.click();
+      } else alert("No file to download.");
+    } catch {
+      alert("Search first.");
+    }
+  };
+
+  return (
+    <div className="inward-search-page">
+      <div className="inward-search-container">
+        <h2 className="form">INWARD SEARCH</h2>
+
+        <div className="top-row">
+          <div className="top-left">
+            <label>Inward No:</label>
+            <input type="text" value={inwardNo} onChange={(e) => setInwardNo(e.target.value)} className="input-field" />
+          </div>
+
+          <div className="top-right">
+            <label>Date:</label>
+            <input type="date" name="fromDate" value={formData.fromDate} onChange={handleChange} className="date-field" />
+          </div>
+        </div>
+
+        <div className="form-section">
+          <label>Office:</label>
+          <select name="office" value={formData.office} onChange={handleChange} className="input-field">
+            <option value="">-- Select Office --</option>
+            <option value="CP Office">CP Office</option>
+          </select>
+
+          {formData.office === "CP Office" && (
+            <>
+              <label>Section:</label>
+              <select name="section" value={formData.section} onChange={handleChange} className="input-field">
+                <option value="">-- Select Section --</option>
+                <option value="CP Camp">CP Camp</option>
+                <option value="Cyber Office">Cyber Office</option>
+              </select>
+            </>
+          )}
+
+          <label>Seat No:</label>
+          <input type="text" name="seatNo" value={formData.seatNo} onChange={handleChange} className="input-field" />
+
+          <label>File No:</label>
+          <input type="text" name="fileNo" value={formData.fileNo} onChange={handleChange} className="input-field" />
+
+          <label>Year:</label>
+          <input type="number" name="year" value={formData.year} onChange={handleChange} className="input-field" />
+
+          <label>Received From:</label>
+          <select name="receivedFrom" value={formData.receivedFrom} onChange={handleChange} className="input-field">
+            <option value="">-- Select Received From --</option>
+            <option value="Cyber Office">Cyber Office</option>
+          </select>
+        </div>
+
+        <div className="button-section">
+          <button onClick={handleSearch} className="search-button">Search</button>
+          <button onClick={handleViewFile} className="search-button">View</button>
+          <button onClick={handleDownloadFile} className="search-button">Download</button>
+        </div>
+
+        <div className="received-date-range">
+          <label>Received Date Range:</label>
+          <div className="received-date-row">
+            <input type="date" name="receivedFromDate" value={formData.receivedFromDate} onChange={handleChange} className="date-field" />
+            <span className="range-gap">to</span>
+            <input type="date" name="receivedToDate" value={formData.receivedToDate} onChange={handleChange} className="date-field" />
+            <button onClick={handleReceivedDateSearch} className="search-button range-search-button">Search</button>
+          </div>
+        </div>
+
+        <div className="results-section">
+          <label>Results:</label>
+          <textarea rows={10} className="results-textarea" value={searchResults} readOnly></textarea>
+        </div>
+
+      </div>
+    </div>
+  );
+};
+
+export default InwardSearch;
+Backend 
+controllers-inward.controller.js
+
+
+
+
+
+import pool from "../config/db.js";
+import multer from "multer";
+import path from "path";
+import fs from "fs";
+
+// File upload storage
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const dir = "./uploads";
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir);
+    cb(null, dir);
+  },
+  filename: (req, file, cb) => {
+    cb(null, Date.now() + "-" + file.originalname);
+  },
+});
+export const upload = multer({ storage });
+
+// Generate Next Inward No
+export const getNextInwardNumber = async (req, res) => {
+  try {
+    const result = await pool.query("SELECT inward_no FROM inward_admin ORDER BY id DESC LIMIT 1");
+    let nextNo = "IN-0001";
+
+    if (result.rows.length > 0) {
+      const lastNo = result.rows[0].inward_no.split("-")[1];
+      const next = String(Number(lastNo) + 1).padStart(4, "0");
+      nextNo = `IN-${next}`;
+    }
+
+    res.json({ inwardNo: nextNo });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Error generating Inward No", error: err.message });
+  }
+};
+
+// Save Inward
+export const createInward = async (req, res) => {
+  try {
+    const {
+      inwardNo, office, section, seatNo, fileNo,
+      year, receivedFrom, to, subject, category,
+      remarks, date
+    } = req.body;
+
+    const filePath = req.file ? req.file.path : null;
+
+    const query = `
+      INSERT INTO inward_admin (
+        inward_no, office, section, seat_no, file_no, year,
+        received_from, to_person, subject, category, remarks, date, file_path
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
+      RETURNING inward_no
+    `;
+
+    const values = [inwardNo, office, section, seatNo, fileNo, year,
+      receivedFrom, to, subject, category, remarks, date, filePath];
+
+    const result = await pool.query(query, values);
+
+    res.json({ message: `Inward No ${result.rows[0].inward_no} created successfully`, inwardNo: result.rows[0].inward_no });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Error saving inward", error: err.message });
+  }
+};
+//search api
+export const searchInward = async (req, res) => {
+  try {
+    const {
+      office,
+      section,
+      seatNo,
+      fileNo,
+      year,
+      receivedFrom,
+      fromDate,
+      toDate,
+      inwardNo
+    } = req.body;
+
+    let query = `SELECT * FROM inward_admin WHERE 1=1`;
+    let values = [];
+    let index = 1;
+
+    if (inwardNo) {
+      query += ` AND inward_no = $${index++}`;
+      values.push(inwardNo);
+    }
+
+    if (office) {
+      query += ` AND office = $${index++}`;
+      values.push(office);
+    }
+
+    if (section) {
+      query += ` AND section = $${index++}`;
+      values.push(section);
+    }
+
+    if (seatNo) {
+      query += ` AND seat_no = $${index++}`;
+      values.push(seatNo);
+    }
+
+    if (fileNo) {
+      query += ` AND file_no = $${index++}`;
+      values.push(fileNo);
+    }
+
+    if (year) {
+      query += ` AND year = $${index++}`;
+      values.push(year);
+    }
+
+    if (receivedFrom) {
+      query += ` AND received_from = $${index++}`;
+      values.push(receivedFrom);
+    }
+
+    if (fromDate && toDate) {
+      query += ` AND date BETWEEN $${index++} AND $${index++}`;
+      values.push(fromDate, toDate);
+    }
+
+    query += " ORDER BY inward_no ASC";
+
+    const result = await pool.query(query, values);
+    res.json(result.rows);
+
+  } catch (error) {
+    console.log("Search Error:", error);
+    res.status(500).json({ message: "Search failed" });
+  }
+};
+routes-inward.js
+
+
+import express from "express";
+import { getNextInwardNumber, createInward, upload,  searchInward } from "../controllers/inward.controller.js";
+
+const router = express.Router();
+
+router.get("/next-inward-no", getNextInwardNumber);
+router.post("/", upload.single("fileUpload"), createInward);
+
+// ✅ NEW: Search API
+router.post("/search", searchInward);
+
+export default router;
+
+
+
+
+import React, { useState} from "react";
+import axios from "axios";
+import "./InwardSearch.css";
+
+const InwardSearch = () => {
+  const [inwardNo, setInwardNo] = useState("");
+  const [formData, setFormData] = useState({
+    office: "",
+    section: "",
+    seatNo: "",
+    fileNo: "",
+    year: "",
+    receivedFrom: "",
+    fromDate: new Date().toISOString().split("T")[0],
+    toDate: new Date().toISOString().split("T")[0],
+    receivedFromDate: new Date().toISOString().split("T")[0],
+    receivedToDate: new Date().toISOString().split("T")[0],
+  });
+
+  const [searchResults, setSearchResults] = useState("");
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    if (name === "office") {
+      setFormData({ ...formData, office: value, section: "" });
+      return;
+    }
+    setFormData({ ...formData, [name]: value });
+  };
+
+  const handleSearch = async () => {
+  try {
+    const response = await axios.post("http://localhost:5000/api/inward/search", {
+      ...formData,
+      inwardNo
+    });
+    setSearchResults(JSON.stringify(response.data, null, 2));
+  } catch {
+    setSearchResults("No results or error occurred.");
+  }
+};
+
+
+  const handleReceivedDateSearch = async () => {
+    try {
+      const response = await axios.post("http://localhost:5000/api/inward/search", {
+        fromDate: formData.receivedFromDate,
+        toDate: formData.receivedToDate,
+         ...formData
+      });
+      setSearchResults(JSON.stringify(response.data, null, 2));
+    } catch {
+      setSearchResults("No results or error occurred.");
+    }
+  };
+
+ const handleViewFile = () => {
+  try {
+    const data = JSON.parse(searchResults);
+    const file = data?.[0]?.file_path;
+    if (file) window.open(`http://localhost:5000/${file}`, "_blank");
+    else alert("No file available to view.");
+  } catch {
+    alert("Please search first.");
+  }
+};
+
+
+  const handleDownloadFile = () => {
+  try {
+    const data = JSON.parse(searchResults);
+    const file = data?.[0]?.file_path;
+    if (file) {
+      const link = document.createElement("a");
+      link.href = `http://localhost:5000/${file}`;
+      link.download = "";
+      link.click();
+    } else alert("No file to download.");
+  } catch {
+    alert("Search first.");
+  }
+};
+
+
+  return (
+    <div className="inward-search-page">
+      <div className="inward-search-container">
+        <h2 className="form">INWARD SEARCH</h2>
+
+        <div className="top-row">
+          <div className="top-left">
+            <label>Inward No:</label>
+            <input type="text" value={inwardNo} onChange={(e) => setInwardNo(e.target.value)} className="input-field" />
+          </div>
+
+          <div className="top-right">
+            <label>Date:</label>
+            <input type="date" name="fromDate" value={formData.fromDate} onChange={handleChange} className="date-field" />
+          </div>
+        </div>
+
+        <div className="form-section">
+          <label>Office:</label>
+          <select name="office" value={formData.office} onChange={handleChange} className="input-field">
+            <option value="">-- Select Office --</option>
+            <option value="CP Office">CP Office</option>
+          </select>
+
+          {formData.office === "CP Office" && (
+            <>
+              <label>Section:</label>
+              <select name="section" value={formData.section} onChange={handleChange} className="input-field">
+                <option value="">-- Select Section --</option>
+                <option value="CP Camp">CP Camp</option>
+                <option value="Cyber Office">Cyber Office</option>
+              </select>
+            </>
+          )}
+
+          <label>Seat No:</label>
+          <input type="text" name="seatNo" value={formData.seatNo} onChange={handleChange} className="input-field" />
+
+          <label>File No:</label>
+          <input type="text" name="fileNo" value={formData.fileNo} onChange={handleChange} className="input-field" />
+
+          <label>Year:</label>
+          <input type="number" name="year" value={formData.year} onChange={handleChange} className="input-field" />
+
+          <label>Received From:</label>
+          <select name="receivedFrom" value={formData.receivedFrom} onChange={handleChange} className="input-field">
+            <option value="">-- Select Received From --</option>
+            <option value="Cyber Office">Cyber Office</option>
+          </select>
+        </div>
+
+        <div className="button-section">
+          <button onClick={handleSearch} className="search-button">Search</button>
+          <button onClick={handleViewFile} className="search-button">View</button>
+          <button onClick={handleDownloadFile} className="search-button">Download</button>
+        </div>
+
+        <div className="received-date-range">
+          <label>Received Date Range:</label>
+          <div className="received-date-row">
+            <input type="date" name="receivedFromDate" value={formData.receivedFromDate} onChange={handleChange} className="date-field" />
+            <span className="range-gap">to</span>
+            <input type="date" name="receivedToDate" value={formData.receivedToDate} onChange={handleChange} className="date-field" />
+            <button onClick={handleReceivedDateSearch} className="search-button range-search-button">Search</button>
+          </div>
+        </div>
+
+        <div className="results-section">
+          <label>Results:</label>
+          <textarea rows={10} className="results-textarea" value={searchResults} readOnly></textarea>
+        </div>
+
+      </div>
+    </div>
+  );
+};
+
+export default InwardSearch;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

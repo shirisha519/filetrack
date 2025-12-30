@@ -1,0 +1,9 @@
+This is another cheking file
+
+
+			___________________________
+      upload document :| _ _______________  _____  |
+                       | |choose file   |  |+  |   |
+		       | |______________|  |___|   |
+		       |(show the selelcted files) |
+		       |___________________________|

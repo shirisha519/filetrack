@@ -1,12 +1,25 @@
+
+
+
 import express from "express";
-import mongoose from "mongoose";
-import dotenv from "dotenv";
 import cors from "cors";
+import pool from "./config/db.js";
+import dotenv from "dotenv";
+
 
 import adminRoutes from "./routes/admin.js";
 import inwardRoutes from "./routes/inward.js";
+import outwardRoutes from "./routes/outward.js";
 import fileRoutes from "./routes/file.js";
 import pendingRoutes from "./routes/pending.js";
+
+
+import tapalReceivedRoutes from './routes/tapalReceivedRoutes.js';
+import tapalDispatchedRoutes from './routes/tapalDispatchedRoutes.js';
+import tapalPendingRoutes from './routes/tapalPendingRoutes.js';
+import tapalSearchRoutes from './routes/tapalSearchRoutes.js';
+import printTapalRoutes from './routes/printTapalRoutes.js';
+
 
 dotenv.config();
 const app = express();
@@ -15,25 +28,26 @@ app.use(express.json());
 
 app.use("/api/admin", adminRoutes);
 app.use("/api/inward", inwardRoutes);
-app.use("/api/files", fileRoutes);
+app.use("/api/outward", outwardRoutes);
+app.use("/uploads", express.static("uploads")); // serve uploaded files
 
-mongoose.connect(process.env.MONGO_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true
-}).then(() => console.log("MongoDB connected"))
-  .catch(err => console.error(err));
-  app.post("/api/inward/search", async (req, res) => {
-  try {
-    const { fromDate, toDate } = req.body;
-    const results = await Inward.find({
-      date: { $gte: new Date(fromDate), $lte: new Date(toDate) }
-    });
-    res.json(results);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Error searching inward records" });
-  }
+
+
+app.use("/api/file", fileRoutes);
+app.use("/api", pendingRoutes);
+
+
+app.use('/api/tapal/received', tapalReceivedRoutes);
+app.use('/api/tapal', tapalDispatchedRoutes);
+app.use('/api/tapal/pending', tapalPendingRoutes);
+app.use('/api/tapal', tapalSearchRoutes);
+app.use('/api/tapal', printTapalRoutes);
+
+
+
+pool.connect()
+  .then(() => console.log("✅ PostgreSQL Connected"))
+  .catch(err => console.error("❌ PostgreSQL Error:", err));
+  app.listen(5000, () => {
+  console.log("✅ Server running on port 5000");
 });
-
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

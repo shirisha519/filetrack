@@ -1,0 +1,963 @@
+InwardSearch.js
+import React, { useState } from "react";
+import axios from "axios";
+import "./InwardSearch.css";
+const API_BASE = "http://localhost:5000/api/inward";
+const InwardSearch = () => {
+  const [inwardNo, setInwardNo] = useState("");
+  const [formData, setFormData] = useState({
+    office: "",
+    section: "",
+    seatNo: "",
+    fileNo: "",
+    year: "",
+    subject: "",
+    receivedFrom: "",
+    fromDate: new Date().toISOString().split("T")[0],
+    toDate: new Date().toISOString().split("T")[0],
+    receivedFromDate: new Date().toISOString().split("T")[0],
+    receivedToDate: new Date().toISOString().split("T")[0],
+  });
+  const [searchResults, setSearchResults] = useState("");
+
+  // Handle input change
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    if (name === "office") {
+      setFormData({ ...formData, office: value, section: "" });
+      return;
+    }
+    setFormData({ ...formData, [name]: value });
+  };
+
+  // General search
+  const handleSearch = async () => {
+    try {
+      const response = await axios.post("http://localhost:5000/api/inward/search", {
+        ...formData,
+        inwardNo,
+      });
+      formatResults(response.data);
+    } catch (error) {
+      console.error(error);
+      setSearchResults("No results found.");
+    }
+  };
+
+  // Search by received date range
+  const handleReceivedDateSearch = async () => {
+    try {
+      const response = await axios.post("http://localhost:5000/api/inward/search", {
+        fromDate: formData.receivedFromDate,
+        toDate: formData.receivedToDate,
+      });
+      formatResults(response.data);
+    } catch (error) {
+      console.error(error);
+      setSearchResults("No results found.");
+    }
+  };
+
+  // Format backend data into textarea
+  const formatResults = (data) => {
+    if (!data || data.length === 0) {
+      setSearchResults("No results found.");
+      return;
+    }
+    let formatted =
+      "Inward No | Office | Section | Seat No | File No | Year | Received From | To | Date\n";
+    formatted +=
+      "----------------------------------------------------------------------------\n";
+    data.forEach((row) => {
+      formatted += `${row.inward_no || ""} | ${row.office || ""} | ${row.section || ""} | ${
+        row.seat_no || ""
+      } | ${row.file_no || ""} | ${row.year || ""} | ${row.received_from || ""} | ${
+        row.to_person || ""
+      } | ${(row.date || "").split("T")[0]}\n`;
+    });
+    setSearchResults(formatted);
+  };
+
+  // View file in new tab
+   const handleViewFile = async () => {
+    if (!inwardNo) return alert("Enter an Inward No to view file.");
+    try {
+      const response = await axios.get(`${API_BASE}/view/${inwardNo}`);
+      const fileUrl = response.data.fileUrl;
+      if (fileUrl) {
+        window.open(fileUrl, "_blank");
+      } else {
+        alert("File not available for this Inward No.");
+      }
+    } catch (error) {
+      console.error(error);
+      alert("Error fetching file for viewing.");
+    }
+  };
+
+  // Download file
+  const handleDownloadFile = async () => {
+  try {
+    const response = await axios.post(
+      "http://localhost:5000/api/inward/export",
+      { ...formData, inwardNo },
+      { responseType: "blob" }
+    );
+
+    const blob = new Blob([response.data], {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    });
+    const link = document.createElement("a");
+    link.href = window.URL.createObjectURL(blob);
+    link.download = "InwardData.xlsx";
+    link.click();
+  } catch (error) {
+    console.error(error);
+    alert("Error downloading Excel file.");
+  }
+};
+
+
+  return (
+    <div className="inward-search-page">
+      <div className="inward-search-container">
+        <h2 className="form-title">INWARD SEARCH</h2>
+        <h2 className="search-sub-title">Search Inward Admin and Account Branch</h2>
+
+        {/* MAIN SEARCH BOX */}
+        <div className="search-box">
+          <div className="form-row">
+            <label>Inward No:</label>
+            <input type="text" value={inwardNo} onChange={(e) => setInwardNo(e.target.value)} />
+          </div>
+
+          <div className="form-row">
+            <label>Date:</label>
+            <input type="date" name="fromDate" value={formData.fromDate} onChange={handleChange} />
+          </div>
+
+          <div className="form-row">
+            <label>Office:</label>
+            <select name="office" value={formData.office} onChange={handleChange}>
+              <option value="">-- Select Office --</option>
+              <option value="CP Office">CP Office</option>
+            </select>
+          </div>
+
+          {formData.office === "CP Office" && (
+            <div className="form-row">
+              <label>Section:</label>
+              <select name="section" value={formData.section} onChange={handleChange}>
+                <option value="">-- Select Section --</option>
+                <option value="CP Camp">CP Camp</option>
+                <option value="Cyber Office">Cyber Office</option>
+              </select>
+            </div>
+          )}
+
+          <div className="form-row">
+            <label>Seat No:</label>
+            <input type="text" name="seatNo" value={formData.seatNo} onChange={handleChange} />
+          </div>
+
+          <div className="form-row">
+            <label>File No:</label>
+            <input type="text" name="fileNo" value={formData.fileNo} onChange={handleChange} />
+          </div>
+
+          <div className="form-row">
+            <label>Year:</label>
+            <input type="number" name="year" value={formData.year} onChange={handleChange} />
+          </div>
+
+          <div className="form-row">
+            <label>Subject:</label>
+            <input type="text" name="subject" value={formData.subject} onChange={handleChange} />
+          </div>
+
+          <div className="form-row">
+            <label>Received From:</label>
+            <select name="receivedFrom" value={formData.receivedFrom} onChange={handleChange}>
+              <option value="">-- Select Received From --</option>
+              <option value="Cyber Office">Cyber Office</option>
+            </select>
+          </div>
+
+          <div className="button-section">
+            <button onClick={handleSearch} className="search-btn">Search</button>
+            <button onClick={handleViewFile} className="search-btn">View</button>
+            <button onClick={handleDownloadFile} className="search-btn">Download</button>
+          </div>
+        </div>
+
+        {/* RECEIVED DATE RANGE BOX */}
+        <div className="received-range-box">
+          <h3>Received Date Range</h3>
+          <div className="range-row">
+            <label>From:</label>
+            <input type="date" name="receivedFromDate" value={formData.receivedFromDate} onChange={handleChange} />
+            <label>To:</label>
+            <input type="date" name="receivedToDate" value={formData.receivedToDate} onChange={handleChange} />
+            <button onClick={handleReceivedDateSearch} className="search-btn">Search</button>
+          </div>
+        </div>
+
+        {/* RESULTS AREA */}
+        <div className="results-box">
+          <label>Results:</label>
+          <textarea readOnly value={searchResults} />
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default InwardSearch;
+inward.controller.js
+import pool from "../config/db.js";
+import multer from "multer";
+import path from "path";
+import fs from "fs";
+import ExcelJS from "exceljs";
+
+// ========== FILE UPLOAD CONFIG ==========
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const dir = "./uploads";
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir);
+    cb(null, dir);
+  },
+  filename: (req, file, cb) => {
+    cb(null, Date.now() + "-" + file.originalname);
+  },
+});
+export const upload = multer({ storage });
+
+// ========== GENERATE NEXT INWARD NUMBER ==========
+export const getNextInwardNumber = async (req, res) => {
+  try {
+    const result = await pool.query(
+      "SELECT inward_no FROM inward_admin ORDER BY id DESC LIMIT 1"
+    );
+    let nextNo = "IN-0001";
+
+    if (result.rows.length > 0) {
+      const lastNo = result.rows[0].inward_no.split("-")[1];
+      const next = String(Number(lastNo) + 1).padStart(4, "0");
+      nextNo = `IN-${next}`;
+    }
+
+    res.json({ inwardNo: nextNo });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Error generating Inward No" });
+  }
+};
+
+// ========== CREATE INWARD ==========
+export const createInward = async (req, res) => {
+  try {
+    const {
+      inwardNo,
+      office,
+      section,
+      seatNo,
+      fileNo,
+      year,
+      receivedFrom,
+      to,
+      subject,
+      category,
+      remarks,
+      date,
+    } = req.body;
+
+    const filePath = req.file ? req.file.path : null;
+
+    const query = `
+      INSERT INTO inward_admin (
+        inward_no, office, section, seat_no, file_no, year,
+        received_from, to_person, subject, category, remarks, date, file_path
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
+      RETURNING inward_no
+    `;
+
+    const values = [
+      inwardNo,
+      office,
+      section,
+      seatNo,
+      fileNo,
+      year,
+      receivedFrom,
+      to,
+      subject,
+      category,
+      remarks,
+      date,
+      filePath,
+    ];
+
+    const result = await pool.query(query, values);
+
+    res.json({
+      message: `Inward No ${result.rows[0].inward_no} created successfully`,
+      inwardNo: result.rows[0].inward_no,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Error saving inward" });
+  }
+};
+
+// ========== SEARCH INWARD ==========
+export const searchInward = async (req, res) => {
+  try {
+    const {
+      office,
+      section,
+      seatNo,
+      fileNo,
+      year,
+      receivedFrom,
+      fromDate,
+      toDate,
+      inwardNo,
+    } = req.body;
+
+    let query = `SELECT * FROM inward_admin WHERE 1=1`;
+    let values = [];
+    let index = 1;
+
+    if (inwardNo) {
+      query += ` AND inward_no = $${index++}`;
+      values.push(inwardNo);
+    }
+    if (office) {
+      query += ` AND office = $${index++}`;
+      values.push(office);
+    }
+    if (section) {
+      query += ` AND section = $${index++}`;
+      values.push(section);
+    }
+    if (seatNo) {
+      query += ` AND seat_no = $${index++}`;
+      values.push(seatNo);
+    }
+    if (fileNo) {
+      query += ` AND file_no = $${index++}`;
+      values.push(fileNo);
+    }
+    if (year) {
+      query += ` AND year = $${index++}`;
+      values.push(year);
+    }
+    if (receivedFrom) {
+      query += ` AND received_from = $${index++}`;
+      values.push(receivedFrom);
+    }
+    if (fromDate && toDate && fromDate !== toDate) {
+      query += ` AND date BETWEEN $${index++} AND $${index++}`;
+      values.push(fromDate, toDate);
+    }
+
+    query += " ORDER BY inward_no ASC";
+
+    const result = await pool.query(query, values);
+    res.json(result.rows);
+  } catch (error) {
+    console.log("Search Error:", error);
+    res.status(500).json({ message: "Search failed" });
+  }
+};
+
+// ========== VIEW FILE ==========
+
+
+export const viewInwardFile = async (req, res) => {
+  try {
+    const { inwardNo } = req.params;
+    const result = await pool.query("SELECT file_path FROM inward_admin WHERE inward_no = $1", [inwardNo]);
+    if (result.rows.length === 0) return res.status(404).json({ message: "No record found for this Inward No." });
+
+    const dbFilePath = result.rows[0].file_path;
+    if (!dbFilePath) return res.status(404).json({ message: "File not available for this Inward No." });
+
+    const realPath = resolveExistingFilePath(dbFilePath);
+    if (!realPath) return res.status(404).json({ message: "File not available for this Inward No." });
+
+    // sendFile will cause browser to open the file if it can (and matching content-type)
+    res.sendFile(realPath);
+  } catch (err) {
+    console.error("View file error:", err);
+    res.status(500).json({ message: "Error fetching file for viewing" });
+  }
+};
+
+// ========== DOWNLOAD FILE ==========
+export const downloadInwardFile = async (req, res) => {
+  try {
+    const { inwardNo } = req.params;
+    const result = await pool.query(
+      "SELECT file_path FROM inward_admin WHERE inward_no = $1",
+      [inwardNo]
+    );
+    if (result.rows.length === 0)
+      return res.status(404).json({ message: "File not found" });
+
+    const filePath = result.rows[0].file_path;
+    res.download(path.resolve(filePath));
+  } catch (error) {
+    console.error("Error downloading file:", error);
+    res.status(500).json({ message: "Error downloading file" });
+  }
+};
+
+// ========== EXPORT TO EXCEL ==========
+export const exportInwardToExcel = async (req, res) => {
+  try {
+    const {
+      office,
+      section,
+      seatNo,
+      fileNo,
+      year,
+      receivedFrom,
+      fromDate,
+      toDate,
+      inwardNo,
+    } = req.body;
+
+    let query = `SELECT inward_no, office, section, seat_no, file_no, year, received_from, to_person, subject, date 
+                 FROM inward_admin WHERE 1=1`;
+    let values = [];
+    let index = 1;
+
+    if (inwardNo) {
+      query += ` AND inward_no = $${index++}`;
+      values.push(inwardNo);
+    }
+    if (office) {
+      query += ` AND office = $${index++}`;
+      values.push(office);
+    }
+    if (section) {
+      query += ` AND section = $${index++}`;
+      values.push(section);
+    }
+    if (seatNo) {
+      query += ` AND seat_no = $${index++}`;
+      values.push(seatNo);
+    }
+    if (fileNo) {
+      query += ` AND file_no = $${index++}`;
+      values.push(fileNo);
+    }
+    if (year) {
+      query += ` AND year = $${index++}`;
+      values.push(year);
+    }
+    if (receivedFrom) {
+      query += ` AND received_from = $${index++}`;
+      values.push(receivedFrom);
+    }
+    if (fromDate && toDate && fromDate !== toDate) {
+      query += ` AND date BETWEEN $${index++} AND $${index++}`;
+      values.push(fromDate, toDate);
+    }
+
+    const result = await pool.query(query, values);
+    const data = result.rows;
+
+    if (data.length === 0) {
+      return res.status(404).json({ message: "No data found for export" });
+    }
+
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet("Inward Data");
+
+    worksheet.columns = [
+      { header: "Inward No", key: "inward_no", width: 15 },
+      { header: "Office", key: "office", width: 20 },
+      { header: "Section", key: "section", width: 20 },
+      { header: "Seat No", key: "seat_no", width: 10 },
+      { header: "File No", key: "file_no", width: 15 },
+      { header: "Year", key: "year", width: 10 },
+      { header: "Received From", key: "received_from", width: 20 },
+      { header: "To", key: "to_person", width: 15 },
+      { header: "Subject", key: "subject", width: 30 },
+      { header: "Date", key: "date", width: 15 },
+    ];
+
+    data.forEach((row) => worksheet.addRow(row));
+    worksheet.getRow(1).font = { bold: true };
+
+    const buffer = await workbook.xlsx.writeBuffer();
+
+    res.setHeader(
+      "Content-Type",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    );
+    res.setHeader("Content-Disposition", "attachment; filename=inward_data.xlsx");
+
+    res.send(Buffer.from(buffer));
+  } catch (error) {
+    console.error("Excel export error:", error);
+    res.status(500).json({ message: "Error exporting to Excel" });
+  }
+};
+routes-inward.js
+import express from "express";
+import {
+  getNextInwardNumber,
+  createInward,
+  upload,
+  searchInward,
+  viewInwardFile,
+  downloadInwardFile,
+  exportInwardToExcel,
+} from "../controllers/inward.controller.js";
+
+const router = express.Router();
+
+router.get("/next-inward-no", getNextInwardNumber);
+router.post("/", upload.single("fileUpload"), createInward);
+router.post("/search", searchInward);
+router.get("/view/:inwardNo", viewInwardFile);
+router.get("/download/:inwardNo", downloadInwardFile);
+router.post("/export", exportInwardToExcel);
+
+export default router;
+uploads\
+1762753641967-testfile.rar
+1762753641967-testfile.txt
+1762756781232-testfile.txt
+1762761154482-sample.pdf
+1762766612892-1762761154482-sample.pdf
+1762945910983-1762753641967-testfile.txt
+1762945913437-1762753641967-testfile.txt
+sample.pdf
+test.pdf
+
+
+
+
+
+
+
+FileStatus.js
+import React, { useState } from "react";
+import "./FileStatus.css";
+
+const FileStatusAdmin = () => {
+  const [section, setSection] = useState("");
+  const [seatNo, setSeatNo] = useState("");
+  const [fileNo, setFileNo] = useState(""); // <-- Added File No
+  const [subject, setSubject] = useState("");
+  const [resultText, setResultText] = useState("");
+  const [owFrom, setOwFrom] = useState("");
+  const [owTo, setOwTo] = useState("");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+
+  const handleSearch = () => {
+    setResultText(`
+SECTION: ${section || "All"}
+SEAT NO: ${seatNo}
+FILE NO: ${fileNo}  // <-- Display File No
+SUBJECT: ${subject}
+OUTWARD NO FROM: ${owFrom}
+OUTWARD NO TO: ${owTo}
+DATE FROM: ${dateFrom}
+DATE TO: ${dateTo}
+
+--- Search Results will Display Here ---
+    `);
+  };
+
+  const handlePrint = () => {
+    window.print();
+  };
+
+  return (
+    <div className="fsadmin-container">
+      <h2 className="fsadmin-title">FILE STATUS</h2>
+      <h3 className="fsadmin-sub-title">ADMIN BRANCH</h3>
+
+      <div className="fsadmin-box">
+
+        <div className="fsadmin-row">
+          <label>Section:</label>
+          <select className="fsadmin-select" value={section} onChange={(e) => setSection(e.target.value)}>
+            <option>All</option>
+            <option>CP Camp</option>
+            <option>Cyber Office</option>
+            <option>Accounts</option>
+          </select>
+
+          <label>From:</label>
+          <input type="text" className="fsadmin-small-input" value={owFrom} onChange={(e) => setOwFrom(e.target.value)} />
+
+          <label>To:</label>
+          <input type="text" className="fsadmin-small-input" value={owTo} onChange={(e) => setOwTo(e.target.value)} />
+        </div>
+
+        <div className="fsadmin-row">
+          <label>Seat No:</label>
+          <input type="text" className="fsadmin-small-input" value={seatNo} onChange={(e) => setSeatNo(e.target.value)} />
+
+          <label>File No:</label>  {/* <-- New File No field */}
+          <input type="text" className="fsadmin-small-input" value={fileNo} onChange={(e) => setFileNo(e.target.value)} />
+
+          <label>From:</label>
+          <input type="date" className="fsadmin-small-input" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
+
+          <label>To:</label>
+          <input type="date" className="fsadmin-small-input" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
+        </div>
+
+        <div className="fsadmin-row">
+          <label>Subject</label>
+          <input type="text" className="fsadmin-large-input" value={subject} onChange={(e) => setSubject(e.target.value)} />
+
+          <button className="fsadmin-search-btn" onClick={handleSearch}>SEARCH</button>
+        </div>
+
+      </div>
+
+      <textarea className="fsadmin-textarea" value={resultText} readOnly></textarea>
+
+      <button className="fsadmin-print-btn" onClick={handlePrint}>PRINT</button>
+    </div>
+  );
+};
+
+export default FileStatusAdmin;
+file.controller.js
+import pool from "../config/db.js";
+import multer from "multer";
+import path from "path";
+import fs from "fs";
+import ExcelJS from "exceljs";
+import { fileURLToPath } from "url";
+// ========== FILE UPLOAD CONFIG ==========
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const dir = "./uploads";
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir);
+    cb(null, dir);
+  },
+  filename: (req, file, cb) => {
+    cb(null, Date.now() + "-" + file.originalname);
+  },
+});
+export const upload = multer({ storage });
+
+// ========== GENERATE NEXT INWARD NUMBER ==========
+export const getNextInwardNumber = async (req, res) => {
+  try {
+    const result = await pool.query(
+      "SELECT inward_no FROM inward_admin ORDER BY id DESC LIMIT 1"
+    );
+    let nextNo = "IN-0001";
+
+    if (result.rows.length > 0) {
+      const lastNo = result.rows[0].inward_no.split("-")[1];
+      const next = String(Number(lastNo) + 1).padStart(4, "0");
+      nextNo = `IN-${next}`;
+    }
+
+    res.json({ inwardNo: nextNo });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Error generating Inward No" });
+  }
+};
+
+// ========== CREATE INWARD ==========
+export const createInward = async (req, res) => {
+  try {
+    const {
+      inwardNo,
+      office,
+      section,
+      seatNo,
+      fileNo,
+      year,
+      receivedFrom,
+      to,
+      subject,
+      category,
+      remarks,
+      date,
+    } = req.body;
+
+    const filePath = req.file ? req.file.path : null;
+
+    const query = `
+      INSERT INTO inward_admin (
+        inward_no, office, section, seat_no, file_no, year,
+        received_from, to_person, subject, category, remarks, date, file_path
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
+      RETURNING inward_no
+    `;
+
+    const values = [
+      inwardNo,
+      office,
+      section,
+      seatNo,
+      fileNo,
+      year,
+      receivedFrom,
+      to,
+      subject,
+      category,
+      remarks,
+      date,
+      filePath,
+    ];
+
+    const result = await pool.query(query, values);
+
+    res.json({
+      message: `Inward No ${result.rows[0].inward_no} created successfully`,
+      inwardNo: result.rows[0].inward_no,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Error saving inward" });
+  }
+};
+
+// ========== SEARCH INWARD ==========
+export const searchInward = async (req, res) => {
+  try {
+    const {
+      office,
+      section,
+      seatNo,
+      fileNo,
+      year,
+      receivedFrom,
+      fromDate,
+      toDate,
+      inwardNo,
+    } = req.body;
+
+    let query = `SELECT * FROM inward_admin WHERE 1=1`;
+    let values = [];
+    let index = 1;
+
+    if (inwardNo) {
+      query += ` AND inward_no = $${index++}`;
+      values.push(inwardNo);
+    }
+    if (office) {
+      query += ` AND office = $${index++}`;
+      values.push(office);
+    }
+    if (section) {
+      query += ` AND section = $${index++}`;
+      values.push(section);
+    }
+    if (seatNo) {
+      query += ` AND seat_no = $${index++}`;
+      values.push(seatNo);
+    }
+    if (fileNo) {
+      query += ` AND file_no = $${index++}`;
+      values.push(fileNo);
+    }
+    if (year) {
+      query += ` AND year = $${index++}`;
+      values.push(year);
+    }
+    if (receivedFrom) {
+      query += ` AND received_from = $${index++}`;
+      values.push(receivedFrom);
+    }
+    if (fromDate && toDate && fromDate !== toDate) {
+      query += ` AND date BETWEEN $${index++} AND $${index++}`;
+      values.push(fromDate, toDate);
+    }
+
+    query += " ORDER BY inward_no ASC";
+
+    const result = await pool.query(query, values);
+    res.json(result.rows);
+  } catch (error) {
+    console.log("Search Error:", error);
+    res.status(500).json({ message: "Search failed" });
+  }
+};
+
+// ========== VIEW FILE ==========
+
+  const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+export const viewInwardFile = async (req, res) => {
+  try {
+    const { inwardNo } = req.params;
+
+    const result = await pool.query(
+      "SELECT file_path FROM inward_admin WHERE inward_no = $1",
+      [inwardNo]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: "No record found for this Inward No." });
+    }
+
+    let dbFilePath = result.rows[0].file_path;
+
+    if (!dbFilePath) {
+      return res.status(404).json({ message: "File not available for this Inward No." });
+    }
+
+    // ✅ Fix: if dbFilePath is already absolute, don’t prepend anything
+    let realPath = dbFilePath;
+
+    // If the DB path starts with "uploads", join it relative to project root
+    if (!path.isAbsolute(dbFilePath)) {
+      realPath = path.join(__dirname, "..", dbFilePath);
+    }
+
+    console.log("🧾 Trying to send file:", realPath);
+
+    if (!fs.existsSync(realPath)) {
+      console.log("❌ File not found:", realPath);
+      return res.status(404).json({ message: "File not available for this Inward No." });
+    }
+
+    res.sendFile(realPath);
+  } catch (err) {
+    console.error("View file error:", err);
+    res.status(500).json({ message: "Error fetching file for viewing" });
+  }
+};
+
+
+// ========== DOWNLOAD FILE ==========
+export const downloadInwardFile = async (req, res) => {
+  try {
+    const { inwardNo } = req.params;
+    const result = await pool.query(
+      "SELECT file_path FROM inward_admin WHERE inward_no = $1",
+      [inwardNo]
+    );
+    if (result.rows.length === 0)
+      return res.status(404).json({ message: "File not found" });
+
+    const filePath = result.rows[0].file_path;
+    res.download(path.resolve(filePath));
+  } catch (error) {
+    console.error("Error downloading file:", error);
+    res.status(500).json({ message: "Error downloading file" });
+  }
+};
+
+// ========== EXPORT TO EXCEL ==========
+export const exportInwardToExcel = async (req, res) => {
+  try {
+    const {
+      office,
+      section,
+      seatNo,
+      fileNo,
+      year,
+      receivedFrom,
+      fromDate,
+      toDate,
+      inwardNo,
+    } = req.body;
+
+    let query = `SELECT inward_no, office, section, seat_no, file_no, year, received_from, to_person, subject, date 
+                 FROM inward_admin WHERE 1=1`;
+    let values = [];
+    let index = 1;
+
+    if (inwardNo) {
+      query += ` AND inward_no = $${index++}`;
+      values.push(inwardNo);
+    }
+    if (office) {
+      query += ` AND office = $${index++}`;
+      values.push(office);
+    }
+    if (section) {
+      query += ` AND section = $${index++}`;
+      values.push(section);
+    }
+    if (seatNo) {
+      query += ` AND seat_no = $${index++}`;
+      values.push(seatNo);
+    }
+    if (fileNo) {
+      query += ` AND file_no = $${index++}`;
+      values.push(fileNo);
+    }
+    if (year) {
+      query += ` AND year = $${index++}`;
+      values.push(year);
+    }
+    if (receivedFrom) {
+      query += ` AND received_from = $${index++}`;
+      values.push(receivedFrom);
+    }
+    if (fromDate && toDate && fromDate !== toDate) {
+      query += ` AND date BETWEEN $${index++} AND $${index++}`;
+      values.push(fromDate, toDate);
+    }
+
+    const result = await pool.query(query, values);
+    const data = result.rows;
+
+    if (data.length === 0) {
+      return res.status(404).json({ message: "No data found for export" });
+    }
+
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet("Inward Data");
+
+    worksheet.columns = [
+      { header: "Inward No", key: "inward_no", width: 15 },
+      { header: "Office", key: "office", width: 20 },
+      { header: "Section", key: "section", width: 20 },
+      { header: "Seat No", key: "seat_no", width: 10 },
+      { header: "File No", key: "file_no", width: 15 },
+      { header: "Year", key: "year", width: 10 },
+      { header: "Received From", key: "received_from", width: 20 },
+      { header: "To", key: "to_person", width: 15 },
+      { header: "Subject", key: "subject", width: 30 },
+      { header: "Date", key: "date", width: 15 },
+    ];
+
+    data.forEach((row) => worksheet.addRow(row));
+    worksheet.getRow(1).font = { bold: true };
+
+    const buffer = await workbook.xlsx.writeBuffer();
+
+    res.setHeader(
+      "Content-Type",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    );
+    res.setHeader("Content-Disposition", "attachment; filename=inward_data.xlsx");
+
+    res.send(Buffer.from(buffer));
+  } catch (error) {
+    console.error("Excel export error:", error);
+    res.status(500).json({ message: "Error exporting to Excel" });
+  }
+};
+routes-file.js
+import express from "express";
+import { getFileStatuses, updateFileStatus} from "../controllers/file.controller.js";
+const router = express.Router();
+
+
+router.get("/statuses", getFileStatuses);
+router.post("/update", updateFileStatus);
+
+export default router;
